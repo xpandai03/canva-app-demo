@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   Alert,
+  ArrowLeftIcon,
   Badge,
   Box,
   Button,
@@ -14,7 +15,12 @@ import {
 } from "@canva/app-ui-kit";
 import { useSelection } from "@canva/app-hooks";
 import * as styles from "styles/components.css";
-import { EMOJI_MAP, WORD_CATEGORY_MAP, VOCABULARY_SIZE } from "./emoji-map";
+import {
+  EMOJI_MAP,
+  VOCABULARY_BY_CATEGORY,
+  VOCABULARY_SIZE,
+  WORD_CATEGORY_MAP,
+} from "./emoji-map";
 
 type AppStatus = "idle" | "running" | "success" | "error";
 
@@ -83,6 +89,7 @@ export const App = () => {
   const [status, setStatus] = useState<AppStatus>("idle");
   const [stats, setStats] = useState<RunStats | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showVocabBreakdown, setShowVocabBreakdown] = useState(false);
 
   const hasSelection = selection.count > 0;
   const isRunning = status === "running";
@@ -92,6 +99,7 @@ export const App = () => {
       setStatus("idle");
       setStats(null);
       setErrorMessage(null);
+      setShowVocabBreakdown(false);
     }
   }, [selection.count]);
 
@@ -196,7 +204,52 @@ export const App = () => {
           </Alert>
         )}
 
-        {status === "success" && stats && (
+        {status === "success" && stats && showVocabBreakdown && (
+          <Box
+            background="neutralLow"
+            borderRadius="standard"
+            padding="2u"
+          >
+            <Rows spacing="2u">
+              <Columns spacing="1u" alignY="center">
+                <Column width="content">
+                  <Button
+                    variant="tertiary"
+                    size="small"
+                    icon={ArrowLeftIcon}
+                    onClick={() => setShowVocabBreakdown(false)}
+                    ariaLabel="Back to run summary"
+                  />
+                </Column>
+                <Column>
+                  <Title size="small">
+                    Vocabulary ({VOCABULARY_SIZE} words)
+                  </Title>
+                </Column>
+              </Columns>
+              <Box className={styles.vocabBreakdownList}>
+                <Rows spacing="3u">
+                  {VOCABULARY_BY_CATEGORY.map(({ category, entries }) => (
+                    <Box key={category}>
+                      <Rows spacing="1u">
+                        <Text size="xsmall" tone="primary">
+                          {formatCategoryName(category)} ({entries.length})
+                        </Text>
+                        <Text size="xsmall" tone="secondary">
+                          {entries
+                            .map((e) => `${e.word} ${e.emoji}`)
+                            .join(", ")}
+                        </Text>
+                      </Rows>
+                    </Box>
+                  ))}
+                </Rows>
+              </Box>
+            </Rows>
+          </Box>
+        )}
+
+        {status === "success" && stats && !showVocabBreakdown && (
           <Box
             background="neutralLow"
             borderRadius="standard"
@@ -250,9 +303,13 @@ export const App = () => {
                     <Text size="xsmall" tone="tertiary">
                       Vocab Size
                     </Text>
-                    <Text size="small" variant="bold">
-                      {stats.vocabularySize}
-                    </Text>
+                    <Button
+                      variant="tertiary"
+                      onClick={() => setShowVocabBreakdown(true)}
+                      ariaLabel="View full vocabulary breakdown (331 words)"
+                    >
+                      {String(stats.vocabularySize)}
+                    </Button>
                     <Text size="xsmall" tone="tertiary">
                       Coverage
                     </Text>
