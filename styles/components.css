@@ -36,3 +36,9 @@
 .scrollContainer:focus-within::-webkit-scrollbar-thumb {
   visibility: visible;
 }
+
+.categoryPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-kit-space-050);
+}
