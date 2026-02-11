@@ -1,84 +1,49 @@
 import { Button, Rows, Text } from "@canva/app-ui-kit";
-import { addElementAtCursor, addElementAtPoint } from "@canva/design";
-import { requestOpenExternalUrl } from "@canva/platform";
-import { FormattedMessage, useIntl } from "react-intl";
+import { useSelection } from "@canva/app-hooks";
 import * as styles from "styles/components.css";
-import { useFeatureSupport } from "@canva/app-hooks";
+import { EMOJI_MAP } from "./emoji-map";
 
-export const DOCS_URL = "https://www.canva.dev/docs/apps/";
+function addVisualSupports(text: string): string {
+  return text.replace(/\b\w+\b/g, (word, offset, original) => {
+    const emoji = EMOJI_MAP[word.toLowerCase()];
+    if (!emoji) return word;
+    const after = original.substring(offset + word.length);
+    if (after.startsWith(` ${emoji}`)) return word;
+    return `${word} ${emoji}`;
+  });
+}
 
 export const App = () => {
-  const isSupported = useFeatureSupport();
-  const addElement = [addElementAtPoint, addElementAtCursor].find((fn) =>
-    isSupported(fn),
-  );
-  const onClick = () => {
-    if (!addElement) {
-      return;
-    }
+  const selection = useSelection("plaintext");
 
-    addElement({
-      type: "text",
-      children: ["Hello world!"],
-    });
+  const onClick = async () => {
+    const draft = await selection.read();
+    draft.contents.forEach((s) => (s.text = addVisualSupports(s.text)));
+    await draft.save();
   };
 
-  const openExternalUrl = async (url: string) => {
-    const response = await requestOpenExternalUrl({
-      url,
-    });
-
-    if (response.status === "aborted") {
-      // user decided not to navigate to the link
-    }
-  };
-
-  const intl = useIntl();
+  const hasSelection = selection.count > 0;
 
   return (
     <div className={styles.scrollContainer}>
       <Rows spacing="2u">
         <Text>
-          <FormattedMessage
-            defaultMessage="
-              To make changes to this app, edit the <code>src/app.tsx</code> file,
-              then close and reopen the app in the editor to preview the changes.
-            "
-            description="Instructions for how to make changes to the app. Do not translate <code>src/app.tsx</code>."
-            values={{
-              code: (chunks) => <code>{chunks}</code>,
-            }}
-          />
+          Select text in the editor, then click the button to add emoji visual
+          supports.
         </Text>
         <Button
           variant="primary"
           onClick={onClick}
-          disabled={!addElement}
-          tooltipLabel={
-            !addElement
-              ? intl.formatMessage({
-                  defaultMessage:
-                    "This feature is not supported in the current page",
-                  description:
-                    "Tooltip label for when a feature is not supported in the current design",
-                })
-              : undefined
-          }
+          disabled={!hasSelection}
           stretch
         >
-          {intl.formatMessage({
-            defaultMessage: "Do something cool",
-            description:
-              "Button text to do something cool. Creates a new text element when pressed.",
-          })}
+          Add Visual Supports
         </Button>
-        <Button variant="secondary" onClick={() => openExternalUrl(DOCS_URL)}>
-          {intl.formatMessage({
-            defaultMessage: "Open Canva Apps SDK docs",
-            description:
-              "Button text to open Canva Apps SDK docs. Opens an external URL when pressed.",
-          })}
-        </Button>
+        <Text size="small" tone={hasSelection ? "primary" : "tertiary"}>
+          {hasSelection
+            ? "Text element selected."
+            : "Select a text element (single-click the text box) to enable this action."}
+        </Text>
       </Rows>
     </div>
   );
